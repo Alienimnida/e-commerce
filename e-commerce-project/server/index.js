@@ -1,8 +1,8 @@
 const PORT = 8000
 const express = require('express')
-const { MongoClient } = require('mongodb')
+const mongoose = require('mongoose')
 const { v4: uuidv4 } = require('uuid')
-const jwt = require('jssonwebtoken')
+const jwt = require('jsonwebtoken')
 const cors = require('cors')
 const bcrypt = require('bcrypt')
 require('dotenv').config()
@@ -13,30 +13,66 @@ const app = express()
 app.use(cors())
 app.use(express.json())
 
-let db
-let userCollection
-let productsCollection
-let ordersCollection
+const userSchema = new mongoose.Schema({
+    userId: { type: String, required: true, unique: true },
+    email: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
+    name: { type: String, required: true },
+    businessName: { type: String, default: '' },
+    phone: { type: String, default: '' },
+    address: { type: String, default: '' },
+    role: { type: String, enum: ['seller', 'admin'], default: 'seller' },
+    status: { type: String, enum: ['pending', 'active', 'suspended'], default: 'pending' },
+    createdAt: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: Date.now }
+});
 
-//Connection to MONGODB
+const productSchema = new mongoose.Schema({
+    productId: { type: String, required: true, unique: true },
+    name: { type: String, required: true },
+    description: { type: String, default: '' },
+    price: { type: Number, required: true },
+    images: [{ type: String }],
+    category: { type: String, default: 'uncategorized' },
+    sellerId: { type: String, required: true, index: true },
+    status: { type: String, enum: ['active', 'inactive'], default: 'active' },
+    createdAt: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: Date.now }
+});
+
+const orderSchema = new mongoose.Schema({
+    orderId: { type: String, required: true, unique: true },
+    orderNumber: { type: String, required: true, unique: true },
+    userId: { type: String, required: true },
+    products: [{
+        productId: { type: String, required: true },
+        quantity: { type: Number, required: true },
+        price: { type: Number, required: true }
+    }],
+    totalAmount: { type: Number, required: true },
+    status: {
+        type: String,
+        enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'],
+        default: 'pending'
+    },
+    createdAt: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: Date.now }
+});
+
+const User = mongoose.model('User', userSchema);
+const Product = mongoose.model('Product', productSchema);
+const Order = mongoose.model('Order', orderSchema);
+
 async function connectToMongoDB() {
     try {
-        const client = new MongoClient(uri)
-        await client.connect()
-        console.log('Connected to MongoDB')
-
-        db = client.db('gadgetnest')
-        usersCollection = db.collection('users')
-        productsCollection = db.collection('products')
-        ordersCollection = db.collection('orders')
-
-        await usersCollection.createIndex({ email: 1 }, { unique: true })
-        await productsCollection.createIndex({ sellerId: 1 })
-        await ordersCollection.createIndex({ orderNUmber: 1 }, { unique: true })
-
+        await mongoose.connect(uri, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true
+        });
+        console.log('Connected to MongoDB with Mongoose');
     } catch (err) {
-        console.error('Error connecting to MongoDB:', err)
-        process.exit(1)
+        console.error('Error connecting to MongoDB:', err);
+        process.exit(1);
     }
 }
 
@@ -62,10 +98,9 @@ const authorize = (roles = []) => {
         if (!roles.includes(req.user.role)) {
             return res.status(403).json({ message: 'Access denied. You do not have permission to perform this action.' })
         }
+        next();
     }
 }
-
-
 
 // Default
 app.get('/', (req, res) => {
@@ -73,7 +108,6 @@ app.get('/', (req, res) => {
 })
 
 //AUTH ROUTES
-//Register
 app.post('/api/auth/register', async (req, res) => {
     try {
         const { email, password, name, businessName, phone, address } = req.body
@@ -82,7 +116,7 @@ app.post('/api/auth/register', async (req, res) => {
             return res.status(400).json({ message: 'Email, password and name are required' })
         }
 
-        const existingUser = await usersCollection.findOne({ email })
+        const existingUser = await User.findOne({ email })
         if (existingUser) {
             return res.status(400).json({ message: 'User already exists with this email' })
         }
@@ -91,9 +125,8 @@ app.post('/api/auth/register', async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, salt)
 
         const userId = uuidv4();
-        //const verificationToken = uuidv4();
 
-        const newUser = {
+        const newUser = new User({
             userId,
             email,
             password: hashedPassword,
@@ -103,21 +136,18 @@ app.post('/api/auth/register', async (req, res) => {
             address: address || '',
             role: 'seller',
             status: 'pending',
-            //verificationToken,
-            //isEmailVerified: false,
             createdAt: new Date(),
             updatedAt: new Date()
-        }
+        });
 
-        await usersCollection.insertOne(newUser)
-        res.status(201).json({ message: 'User registered succesfully. Awaiting admin approval' })
+        await newUser.save();
+        res.status(201).json({ message: 'User registered successfully. Awaiting admin approval' })
     } catch (err) {
         console.error('Register error:', err)
         res.status(500).json({ message: 'Server error', error: err.message })
     }
 })
 
-//Login
 app.post('/api/auth/login', async (req, res) => {
     try {
         const { email, password } = req.body
@@ -126,7 +156,7 @@ app.post('/api/auth/login', async (req, res) => {
             return res.status(400).json({ message: 'Email and password are required' })
         }
 
-        const user = await usersCollection.findOne({ email })
+        const user = await User.findOne({ email })
         if (!user) {
             return res.status(400).json({ message: 'Invalid email or password' })
         }
@@ -143,11 +173,12 @@ app.post('/api/auth/login', async (req, res) => {
         },
             process.env.JWT_SECRET,
             { expiresIn: '24h' }
-
         )
+
         const refreshToken = jwt.sign({
             id: user.userId
         },
+            process.env.JWT_REFRESH_SECRET,
             { expiresIn: '7d' }
         )
 
@@ -168,7 +199,7 @@ app.post('/api/auth/login', async (req, res) => {
 
 app.post('/api/auth/refresh-token', async (req, res) => {
     try {
-        const { resfreshToken } = req.body
+        const { refreshToken } = req.body
 
         if (!refreshToken) {
             return res.status(401).json({ message: 'Refresh token is required' })
@@ -176,7 +207,7 @@ app.post('/api/auth/refresh-token', async (req, res) => {
 
         const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET)
 
-        const user = await usersCollection.findOne({ userId: decoded.id })
+        const user = await User.findOne({ userId: decoded.id })
         if (!user) {
             return res.status(404).json({ message: 'User not found' })
         }
@@ -196,7 +227,7 @@ app.post('/api/auth/refresh-token', async (req, res) => {
     }
 })
 
-app.put('/api/auth/change-password', authenticateToken, async (req, res) => {
+app.put('/api/auth/change-password', authenticationToken, async (req, res) => {
     try {
         const { currentPassword, newPassword } = req.body
 
@@ -204,7 +235,7 @@ app.put('/api/auth/change-password', authenticateToken, async (req, res) => {
             return res.status(400).json({ message: 'Current password and new password are required' });
         }
 
-        const user = await usersCollection.findOne({ userId: req.user.id })
+        const user = await User.findOne({ userId: req.user.id })
         if (!user) {
             return res.status(404).json({ message: 'User not found' })
         }
@@ -217,7 +248,9 @@ app.put('/api/auth/change-password', authenticateToken, async (req, res) => {
         const salt = await bcrypt.genSalt(10)
         const hashedPassword = await bcrypt.hash(newPassword, salt)
 
-        await usersCollection.updateOne({ userId: req.user.id }, { $set: { password: hashedPassword }, updatedAt: new Date() })
+        user.password = hashedPassword;
+        user.updatedAt = new Date();
+        await user.save();
 
         res.status(200).json({ message: 'Password updated successfully' })
     } catch (err) {
@@ -226,4 +259,156 @@ app.put('/api/auth/change-password', authenticateToken, async (req, res) => {
     }
 })
 
+//ADMIN ROUTES
 
+app.post('/api/auth/initial-admin-setup', async (req, res) => {
+    try {
+        const adminExists = await User.findOne({ role: 'admin' });
+
+        if (adminExists) {
+            return res.status(403).json({
+                message: 'Initial setup already completed. Use regular admin registration.'
+            });
+        }
+
+        const { email, password, name, setupCode } = req.body;
+
+        // Verify setup code from environment variable
+        if (setupCode !== process.env.INITIAL_SETUP_CODE) {
+            return res.status(403).json({ message: 'Invalid setup code' });
+        }
+
+        if (!email || !password || !name) {
+            return res.status(400).json({ message: 'Email, password and name are required' });
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+        const userId = uuidv4();
+
+        const newAdmin = new User({
+            userId,
+            email,
+            password: hashedPassword,
+            name,
+            role: 'admin',
+            status: 'active',
+            createdAt: new Date(),
+            updatedAt: new Date()
+        });
+
+        await newAdmin.save();
+        res.status(201).json({ message: 'Initial admin setup completed successfully' });
+    } catch (err) {
+        console.error('Initial admin setup error:', err);
+        res.status(500).json({ message: 'Server error', error: err.message });
+    }
+});
+
+app.post('/api/auth/register-admin', async (req, res) => {
+    try {
+        const { email, password, name, phone, adminCode } = req.body;
+
+        // Verify admin registration code
+        if (adminCode !== process.env.ADMIN_REGISTRATION_CODE) {
+            return res.status(403).json({ message: 'Invalid admin registration code' });
+        }
+
+        if (!email || !password || !name) {
+            return res.status(400).json({ message: 'Email, password and name are required' });
+        }
+
+        const existingUser = await usersCollection.findOne({ email });
+        if (existingUser) {
+            return res.status(400).json({ message: 'User already exists with this email' });
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+        const userId = uuidv4();
+
+        const newAdmin = {
+            userId,
+            email,
+            password: hashedPassword,
+            name,
+            phone: phone || '',
+            role: 'admin',
+            status: 'active', // Admins are active by default
+            createdAt: new Date(),
+            updatedAt: new Date()
+        };
+
+        await usersCollection.insertOne(newAdmin);
+        res.status(201).json({ message: 'Admin registered successfully' });
+    } catch (err) {
+        console.error('Admin Register error:', err);
+        res.status(500).json({ message: 'Server error', error: err.message });
+    }
+});
+
+app.get('/api/admin/pending-sellers', authenticationToken, authorize(['admin']), async (req, res) => {
+    try {
+        const pendingSellers = await User.find({
+            role: 'seller',
+            status: 'pending'
+        }).select('-password'); // Mongoose way to exclude password
+
+        res.status(200).json(pendingSellers);
+    } catch (err) {
+        console.error('Get pending sellers error:', err);
+        res.status(500).json({ message: 'Server error', error: err.message });
+    }
+});
+
+app.put('/api/admin/approve-seller/:userId', authenticationToken, authorize(['admin']), async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const seller = await User.findOne({ userId, role: 'seller' });
+
+        if (!seller) {
+            return res.status(404).json({ message: 'Seller not found' });
+        }
+
+        seller.status = 'active';
+        seller.updatedAt = new Date();
+        await seller.save();
+
+        res.status(200).json({ message: 'Seller approved successfully' });
+    } catch (err) {
+        console.error('Approve seller error:', err);
+        res.status(500).json({ message: 'Server error', error: err.message });
+    }
+});
+
+app.put('/api/admin/suspend-seller/:userId', authenticationToken, authorize(['admin']), async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const { reason } = req.body;
+
+        const seller = await User.findOne({ userId, role: 'seller' });
+
+        if (!seller) {
+            return res.status(404).json({ message: 'Seller not found' });
+        }
+
+        seller.status = 'suspended';
+        seller.suspensionReason = reason || 'No reason provided';
+        seller.updatedAt = new Date();
+        await seller.save();
+
+        res.status(200).json({ message: 'Seller suspended successfully' });
+    } catch (err) {
+        console.error('Suspend seller error:', err);
+        res.status(500).json({ message: 'Server error', error: err.message });
+    }
+});
+
+
+connectToMongoDB().then(() => {
+    app.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`)
+    })
+}).catch(err => {
+    console.error('Failed to start server:', err)
+})
