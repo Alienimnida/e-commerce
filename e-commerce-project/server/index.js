@@ -6,6 +6,11 @@ const jwt = require('jsonwebtoken')
 const cors = require('cors')
 const bcrypt = require('bcrypt')
 require('dotenv').config()
+const {
+    sendSellerApprovalEmail,
+    sendSellerSuspensionEmail,
+    sendRegistrationEmail
+} = require('./email-service')
 
 const uri = process.env.MONGO_URI
 
@@ -141,6 +146,9 @@ app.post('/api/auth/register', async (req, res) => {
         });
 
         await newUser.save();
+
+        await sendRegistrationEmail(newUser)
+
         res.status(201).json({ message: 'User registered successfully. Awaiting admin approval' })
     } catch (err) {
         console.error('Register error:', err)
@@ -334,7 +342,7 @@ app.post('/api/auth/register-admin', async (req, res) => {
             name,
             phone: phone || '',
             role: 'admin',
-            status: 'active', // Admins are active by default
+            status: 'active',
             createdAt: new Date(),
             updatedAt: new Date()
         };
@@ -352,7 +360,7 @@ app.get('/api/admin/pending-sellers', authenticationToken, authorize(['admin']),
         const pendingSellers = await User.find({
             role: 'seller',
             status: 'pending'
-        }).select('-password'); // Mongoose way to exclude password
+        }).select('-password');
 
         res.status(200).json(pendingSellers);
     } catch (err) {
@@ -373,6 +381,8 @@ app.put('/api/admin/approve-seller/:userId', authenticationToken, authorize(['ad
         seller.status = 'active';
         seller.updatedAt = new Date();
         await seller.save();
+
+        await sendSellerApprovalEmail(seller);
 
         res.status(200).json({ message: 'Seller approved successfully' });
     } catch (err) {
@@ -396,6 +406,8 @@ app.put('/api/admin/suspend-seller/:userId', authenticationToken, authorize(['ad
         seller.suspensionReason = reason || 'No reason provided';
         seller.updatedAt = new Date();
         await seller.save();
+
+        await sendSellerSuspensionEmail(seller, seller.suspensionReason);
 
         res.status(200).json({ message: 'Seller suspended successfully' });
     } catch (err) {
