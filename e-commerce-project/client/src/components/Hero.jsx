@@ -1,43 +1,44 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Link } from "react-router-dom";
 
 const HomePage = () => {
     const [currentSlide, setCurrentSlide] = useState(0);
-
+    const [dropdownOpen, setDropdownOpen] = useState(false);
     const featuredProducts = [
         {
             id: 1,
             name: "NextGen Pro Laptop",
-            price: 1299.99,
+            price: 149999.99,
             description: "Ultra-thin, lightweight laptop with 16GB RAM and 1TB SSD",
-            image: "/api/placeholder/500/300"
+            image: "/featuredproduct/laptop.jpg"
         },
         {
             id: 2,
             name: "SoundWave X3 Headphones",
-            price: 249.99,
+            price: 699.99,
             description: "Noise-cancelling wireless headphones with 30-hour battery life",
-            image: "/api/placeholder/500/300"
+            image: "/featuredproduct/headphone.jpg"
         },
         {
             id: 3,
             name: "UltraVision 4K Smart TV",
-            price: 899.99,
+            price: 259999.99,
             description: "55\" 4K Smart TV with HDR and voice control",
-            image: "/api/placeholder/500/300"
+            image: "/featuredproduct/tv.jpg"
         },
         {
             id: 4,
-            name: "PowerCharge Pro",
-            price: 79.99,
+            name: "Fast Track Smart Watch",
+            price: 1299.99,
             description: "Wireless charging pad with multi-device support",
-            image: "/api/placeholder/500/300"
+            image: "/featuredproduct/smartwatch.jpg"
         }
     ];
 
     const categories = [
-        { name: "Laptops & Computers", icon: "💻" },
+        { name: "Laptops ", icon: "💻" },
         { name: "Smartphones", icon: "📱" },
-        { name: "Audio", icon: "🎧" },
+        { name: "Headphones", icon: "🎧" },
         { name: "TVs & Home Theater", icon: "📺" },
         { name: "Gaming", icon: "🎮" },
         { name: "Wearables", icon: "⌚" },
@@ -50,19 +51,19 @@ const HomePage = () => {
             title: "Next-Gen Tech at Your Fingertips",
             description: "Discover the latest in electronics innovation",
             buttonText: "Shop Now",
-            image: "/api/placeholder/1200/600"
+            image: "/banner/bannerImgOne.webp"
         },
         {
             title: "Summer Sale",
             description: "Up to 40% off on selected items",
             buttonText: "View Deals",
-            image: "/api/placeholder/1200/600"
+            image: "/banner/bannerImgTwo.webp"
         },
         {
             title: "New Arrivals",
             description: "Be the first to experience cutting-edge technology",
             buttonText: "Explore",
-            image: "/api/placeholder/1200/600"
+            image: "/banner/bannerImgThree.webp"
         }
     ];
 
@@ -84,38 +85,98 @@ const HomePage = () => {
     }, []);
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-indigo-950 to-purple-900 text-gray-100">
-            {/* Header */}
-            <header className="bg-indigo-950 shadow-lg">
-                <div className="container mx-auto px-4 py-4">
-                    <div className="flex justify-between items-center">
-                        <div className="flex items-center">
-                            <span className="text-teal-400 text-3xl font-bold">GadgetNest</span>
-                        </div>
-                        <div className="hidden md:flex space-x-8">
-                            <a href="#" className="text-gray-300 hover:text-teal-400 transition">Home</a>
-                            <a href="#" className="text-gray-300 hover:text-teal-400 transition">Shop</a>
-                            <a href="#" className="text-gray-300 hover:text-teal-400 transition">Deals</a>
-                            <a href="#" className="text-gray-300 hover:text-teal-400 transition">Support</a>
-                        </div>
-                        <div className="flex items-center space-x-4">
-                            <div className="relative">
-                                <input
-                                    type="text"
-                                    placeholder="Search products..."
-                                    className="bg-indigo-900 text-gray-200 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-teal-400 w-64"
-                                />
-                                <button className="absolute right-3 top-2 text-gray-400">🔍</button>
-                            </div>
-                            <button className="text-2xl">🛒</button>
-                            <button className="text-2xl">👤</button>
-                        </div>
-                    </div>
-                </div>
-            </header>
+        <div className="min-h-screen bg-[#D4C9BE] text-gray-800">
+      {/* Header */}
+      <header className="bg-[#D4C9BE] shadow-lg sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex justify-between items-center">
+            {/* Logo & Brand */}
+            <div className="flex items-center space-x-2">
+              <img
+                src="/GadgetNest.png"
+                alt="GadgetNest Logo"
+                className="w-8 h-8"
+              />
+              <span className="text-[#123458] text-3xl font-bold">GadgetNest</span>
+            </div>
+
+            {/* Navigation Links */}
+            <nav className="hidden md:flex space-x-8 ml-32">
+              <a href="#" className="text-gray-800 hover:text-teal-600 transition">Home</a>
+              <a href="#" className="text-gray-800 hover:text-teal-600 transition">Shop</a>
+              <a href="#" className="text-gray-800 hover:text-teal-600 transition">Deals</a>
+              <a href="#" className="text-gray-800 hover:text-teal-600 transition">Support</a>
+            </nav>
+
+            {/* Search, Cart & User */}
+            <div className="flex items-center space-x-4">
+              {/* Search Bar */}
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search products..."
+                  className="text-gray-800 placeholder-black rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-teal-400 w-64"
+                  style={{ backgroundColor: '#C9B194' }}
+                />
+                <span className="absolute right-4 top-2 text-gray-400">🔍</span>
+              </div>
+
+              {/* Cart Icon */}
+              <button
+                aria-label="Cart"
+                className="text-2xl text-white px-3 py-2 rounded-full"
+                style={{ backgroundColor: '#706D54' }}
+              >
+                🛒
+              </button>
+
+              {/* User Dropdown */}
+              <div className="relative">
+                <button
+                  aria-label="User"
+                  className="text-2xl text-white px-3 py-2 rounded-full"
+                  style={{ backgroundColor: '#706D54', zIndex: 20 }}
+                  onClick={() => setDropdownOpen(!dropdownOpen)} // Toggle dropdown visibility
+                >
+                  👤
+                </button>
+
+                {/* Dropdown Menu */}
+                {dropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-40 rounded-md shadow-lg z-50 bg-[#C9B194]">
+                    
+                    <Link
+                    to="/signin"
+                    className="block px-4 py-2 text-[#123458] hover:bg-[#D4C9BE] transition-colors"
+                    >
+                    Sign In
+                    </Link>
+                    <Link
+                    to="/signup"
+                    className="block px-4 py-2 text-[#123458] hover:bg-[#D4C9BE] transition-colors"
+                    >
+                    Sign Up
+                    </Link>
+
+                    <Link
+                    to="/profile"
+                    className="block px-4 py-2 text-[#123458] hover:bg-[#D4C9BE] transition-colors"
+                    >
+                    Profile
+                    </Link>
+                  </div>
+                )}
+              </div>
+
+
+            </div>
+        </div>
+    </div>
+</header>
+
 
             {/* Hero Carousel */}
-            <div className="relative overflow-hidden h-96 md:h-screen">
+            <div className="relative overflow-hidden h-[500px] md:h-[90vh]">
                 {heroSlides.map((slide, index) => (
                     <div
                         key={index}
@@ -130,8 +191,30 @@ const HomePage = () => {
                                 className="absolute inset-0 w-full h-full object-cover"
                             />
                             <div className="relative z-10 text-center px-6 max-w-4xl">
-                                <h1 className="text-4xl md:text-6xl font-bold mb-4 text-white">{slide.title}</h1>
-                                <p className="text-xl md:text-2xl mb-8 text-gray-200">{slide.description}</p>
+                            <h1
+                                className="text-4xl md:text-6xl font-bold mb-4"
+                                style={{ color: index === 0 || index === 1 ? '#006A71' : '#FFFFFF' }}
+>
+                                {slide.title}
+                            </h1>
+
+                            <p
+                                className={`text-xl md:text-2xl mb-8 ${
+                                (slide.description === "Discover the latest in electronics innovation" ||
+                                slide.description === "Up to 40% off on selected items")
+                                ? ""
+                                : "text-gray-200"
+                            }`}
+                            style={
+                                (slide.description === "Discover the latest in electronics innovation" ||
+                                slide.description === "Up to 40% off on selected items")
+                                ? { color: "#006A71" }
+                                : {}
+                            }
+                            >
+                            {slide.description}
+                            </p>
+
                                 <button className="bg-teal-500 hover:bg-teal-600 text-white px-8 py-3 rounded-full font-semibold text-lg transition transform hover:scale-105">
                                     {slide.buttonText}
                                 </button>
@@ -166,16 +249,16 @@ const HomePage = () => {
             {/* Categories */}
             <section className="py-12 px-4">
                 <div className="container mx-auto">
-                    <h2 className="text-3xl font-bold mb-8 text-center text-teal-300">Shop by Category</h2>
+                <h2 className="text-3xl font-bold mb-8 text-center" style={{ color: '#123458' }}>Shop by Category</h2>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                         {categories.map((category, index) => (
                             <a
-                                key={index}
-                                href="#"
-                                className="bg-indigo-800 bg-opacity-50 rounded-xl p-6 text-center hover:bg-indigo-700 transition transform hover:scale-105"
+                            key={index}
+                            href="#"
+                            className="bg-indigo-800 bg-opacity-50 rounded-xl p-6 text-center hover:bg-indigo-700 transition transform hover:scale-105"
                             >
-                                <div className="text-4xl mb-3">{category.icon}</div>
-                                <h3 className="font-semibold">{category.name}</h3>
+                            <div className="text-4xl mb-3">{category.icon}</div>
+                            <h3 className="font-semibold text-[#123458]">{category.name}</h3>
                             </a>
                         ))}
                     </div>
@@ -185,7 +268,7 @@ const HomePage = () => {
             {/* Featured Products */}
             <section className="py-12 px-4 bg-indigo-900 bg-opacity-50">
                 <div className="container mx-auto">
-                    <h2 className="text-3xl font-bold mb-8 text-center text-teal-300">Featured Products</h2>
+                <h2 className="text-3xl font-bold mb-8 text-center text-[#123458]">Featured Products</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                         {featuredProducts.map((product) => (
                             <div key={product.id} className="bg-gradient-to-br from-indigo-800 to-purple-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition transform hover:-translate-y-2">
@@ -198,7 +281,7 @@ const HomePage = () => {
                                     <h3 className="font-bold text-xl mb-2">{product.name}</h3>
                                     <p className="text-gray-300 text-sm mb-4">{product.description}</p>
                                     <div className="flex justify-between items-center">
-                                        <span className="text-teal-400 font-bold text-xl">${product.price}</span>
+                                        <span className="text-teal-400 font-bold text-xl">Rs.{product.price}</span>
                                         <button className="bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded-lg transition">
                                             Add to Cart
                                         </button>
@@ -222,7 +305,7 @@ const HomePage = () => {
                         <div className="bg-indigo-800 bg-opacity-30 p-6 rounded-xl text-center">
                             <div className="text-4xl mb-4 text-teal-400">🚚</div>
                             <h3 className="text-xl font-bold mb-2">Free Shipping</h3>
-                            <p className="text-gray-300">On all orders over $100</p>
+                            <p className="text-gray-300">On all orders over Rs.100</p>
                         </div>
                         <div className="bg-indigo-800 bg-opacity-30 p-6 rounded-xl text-center">
                             <div className="text-4xl mb-4 text-teal-400">🔄</div>
@@ -239,29 +322,30 @@ const HomePage = () => {
             </section>
 
             {/* Newsletter */}
-            <section className="py-12 px-4 bg-gradient-to-r from-teal-600 to-teal-800">
+            <section className="py-12 px-4" style={{ backgroundColor: '#123458' }}>
                 <div className="container mx-auto max-w-4xl text-center">
-                    <h2 className="text-3xl font-bold mb-3">Stay Updated</h2>
-                    <p className="mb-6">Subscribe to our newsletter for exclusive deals and tech news</p>
+                <h2 className="text-3xl font-bold mb-3 text-[#F1EFEC]">Stay Updated</h2>
+                <p className="mb-6 text-[#F1EFEC]">Subscribe to our newsletter for exclusive deals and tech news</p>
                     <div className="flex flex-col md:flex-row justify-center space-y-4 md:space-y-0 md:space-x-4">
-                        <input
-                            type="email"
-                            placeholder="Your email address"
-                            className="px-4 py-3 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-900 w-full md:w-96"
-                        />
-                        <button className="bg-indigo-900 hover:bg-indigo-800 text-white px-6 py-3 rounded-full font-semibold transition">
-                            Subscribe
-                        </button>
+                    <input
+                        type="email"
+                        placeholder="Your email address"
+                        className="px-4 py-3 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-900 w-full md:w-96 bg-[#F1EFEC] placeholder-black"
+                    />
+
+                    <button className="bg-[#D4C9BE] hover:bg-[#c8bfb4] text-black px-6 py-3 rounded-full font-semibold transition">
+                        Subscribe
+                    </button>
                     </div>
                 </div>
             </section>
 
             {/* Footer */}
-            <footer className="bg-indigo-950 text-gray-300 py-12 px-4">
+            <footer className="bg-[#030303] text-gray-300 py-12 px-4">
                 <div className="container mx-auto">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
                         <div>
-                            <h3 className="text-teal-400 text-2xl font-bold mb-4">TechPulse</h3>
+                        <h3 className="text-[#80BCBD] text-2xl font-bold mb-4">GadgetNest</h3>
                             <p className="mb-4">Your destination for premium electronics and cutting-edge technology.</p>
                             <div className="flex space-x-4">
                                 <a href="#" className="text-gray-300 hover:text-teal-400">📱</a>

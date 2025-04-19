@@ -76,7 +76,7 @@ app.get('/', (req, res) => {
 //Register
 app.post('/api/auth/register', async (req, res) => {
     try {
-        const { email, password, name, businessName, phone, address } = req.body
+        const { email, password, name, businessName, phone, address } = req.body//seller
 
         if (!email || !password || !name) {
             return res.status(400).json({ message: 'Email, password and name are required' })
