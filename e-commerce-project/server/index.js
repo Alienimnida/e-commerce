@@ -19,10 +19,6 @@ app.get('/', (req, res) => {
     res.json('Welcome to GadgetNest Server')
 })
 
-app.use('/api/auth', authRoutes)
-app.use('/api/admin', adminRoutes)
-app.use('/api/seller/products', sellerProductRoutes);
-
 connectToMongoDB()
     .then(() => {
         app.listen(PORT, () => {
