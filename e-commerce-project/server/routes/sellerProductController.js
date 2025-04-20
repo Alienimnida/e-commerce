@@ -4,38 +4,146 @@ const Product = require('../models/Product')
 //Create new product
 const createProduct = async (req, res) => {
     try {
-        const { name, description, price, category, images = [] } = req.body
+        const {
+            name,
+            description,
+            price,
+            marketPrice,
+            sellingPrice,
+            quantity,
+            category,
+            images = []
+        } = req.body
 
-        if (!name || !price) {
-            return res.status(400).json({ message: 'Product name and price are required' })
+        if (!name || !sellingPrice || quantity === undefined) {
+            return res.status(400).json({ message: 'Product name, selling price, and quantity are required' })
         }
 
         const productId = uuidv4()
         const sellerId = req.user.id
-
-        const newProduct = new Product({
-            productId,
+        const batchId = uuidv4()
+        const existingProduct = await Product.findOne({
             name,
-            description: description || '',
-            price,
-            images,
-            category: category || 'uncategorized',
-            sellerId,
-            createdAt: new Date(),
-            updatedAt: new Date()
+            sellerId
         })
 
-        await newProduct.save()
-        res.status(201).json({
-            message: 'Product created successfully',
-            product: newProduct
-        })
+        if (existingProduct) {
+            existingProduct.batches.push({
+                batchId,
+                quantity,
+                marketPrice: marketPrice || price,
+                sellingPrice,
+                createdAt: new Date()
+            })
+
+            if (description) existingProduct.description = description
+            if (category) existingProduct.category = category
+            if (images.length > 0) existingProduct.images = images
+
+            existingProduct.updatedAt = new Date()
+            await existingProduct.save()
+
+            res.status(201).json({
+                message: 'New batch added to existing product successfully',
+                product: existingProduct
+            })
+        } else {
+            const newProduct = new Product({
+                productId,
+                name,
+                description: description || '',
+                price: sellingPrice,
+                images,
+                category: category || 'uncategorized',
+                sellerId,
+                batches: [{
+                    batchId,
+                    quantity,
+                    marketPrice: marketPrice || sellingPrice,
+                    sellingPrice,
+                    createdAt: new Date()
+                }],
+                createdAt: new Date(),
+                updatedAt: new Date()
+            })
+
+            await newProduct.save()
+            res.status(201).json({
+                message: 'Product created successfully with initial batch',
+                product: newProduct
+            })
+        }
     } catch (err) {
         console.error('Create product error:', err);
         res.status(500).json({
             message: 'Server error',
             error: err.message
         });
+    }
+}
+
+// Process order - reduce quantity from oldest batches first
+const processOrder = async (req, res) => {
+    try {
+        const { productId, orderQuantity } = req.body
+
+        if (!productId || orderQuantity === undefined || orderQuantity <= 0) {
+            return res.status(400).json({ message: 'Product ID and valid order quantity are required' })
+        }
+
+        const product = await Product.findOne({ productId })
+
+        if (!product) {
+            return res.status(404).json({ message: 'Product not found' })
+        }
+
+        const totalAvailable = product.batches.reduce((sum, batch) => sum + batch.quantity, 0)
+
+        if (totalAvailable < orderQuantity) {
+            return res.status(400).json({
+                message: 'Insufficient quantity available',
+                available: totalAvailable,
+                requested: orderQuantity
+            })
+        }
+
+        let remainingToFulfill = orderQuantity
+        const fulfilledBatches = []
+
+        product.batches.sort((a, b) => a.createdAt - b.createdAt)
+
+        for (let i = 0; i < product.batches.length && remainingToFulfill > 0; i++) {
+            const batch = product.batches[i]
+
+            if (batch.quantity <= 0) continue
+
+            const quantityFromBatch = Math.min(batch.quantity, remainingToFulfill)
+            batch.quantity -= quantityFromBatch
+            remainingToFulfill -= quantityFromBatch
+
+            fulfilledBatches.push({
+                batchId: batch.batchId,
+                quantityTaken: quantityFromBatch,
+                sellingPrice: batch.sellingPrice
+            })
+        }
+
+        product.batches = product.batches.filter(batch => batch.quantity > 0)
+
+        product.updatedAt = new Date()
+        await product.save()
+
+        res.status(200).json({
+            message: 'Order processed successfully',
+            fulfilledBatches,
+            remainingBatches: product.batches
+        })
+    } catch (err) {
+        console.error('Process order error:', err)
+        res.status(500).json({
+            message: 'Server error',
+            error: err.message
+        })
     }
 }
 
@@ -69,6 +177,8 @@ const getAllProducts = async (req, res) => {
                 { description: { $regex: search, $options: 'i' } }
             ]
         }
+
+        const sortOption = { [sort]: order === 'desc' ? -1 : 1 };
 
         const skip = (parseInt(page) - 1) * parseInt(limit)
         const products = await Product.find(query)
@@ -140,6 +250,78 @@ const updateProduct = async (req, res) => {
         })
     } catch (err) {
         console.error('Update product error', err)
+        res.status(500).json({
+            message: 'Server error',
+            error: err.message
+        })
+    }
+}
+
+// Add a new batch to an existing product
+const addProductBatch = async (req, res) => {
+    try {
+        const { productId } = req.params
+        const { quantity, marketPrice, sellingPrice } = req.body
+        const sellerId = req.user.id
+
+        if (!quantity || quantity <= 0 || !sellingPrice) {
+            return res.status(400).json({ message: 'Valid quantity and selling price are required' })
+        }
+
+        const product = await Product.findOne({ productId, sellerId })
+
+        if (!product) {
+            return res.status(404).json({ message: 'Product not found' })
+        }
+
+        const batchId = uuidv4()
+
+        product.batches.push({
+            batchId,
+            quantity,
+            marketPrice: marketPrice || sellingPrice,
+            sellingPrice,
+            createdAt: new Date()
+        })
+
+        product.updatedAt = new Date()
+        await product.save()
+
+        res.status(201).json({
+            message: 'New batch added successfully',
+            batch: product.batches[product.batches.length - 1],
+            product
+        })
+    } catch (err) {
+        console.error('Add product batch error:', err)
+        res.status(500).json({
+            message: 'Server error',
+            error: err.message
+        })
+    }
+}
+
+// Get product batches
+const getProductBatches = async (req, res) => {
+    try {
+        const { productId } = req.params
+        const sellerId = req.user.id
+
+        const product = await Product.findOne({ productId, sellerId })
+
+        if (!product) {
+            return res.status(404).json({ message: 'Product not found' })
+        }
+
+        product.batches.sort((a, b) => a.createdAt - b.createdAt)
+
+        res.status(200).json({
+            productName: product.name,
+            batches: product.batches,
+            totalQuantity: product.batches.reduce((sum, batch) => sum + batch.quantity, 0)
+        })
+    } catch (err) {
+        console.error('Get product batches error:', err)
         res.status(500).json({
             message: 'Server error',
             error: err.message
@@ -344,5 +526,8 @@ module.exports = {
     uploadProductImages,
     deleteProductImage,
     bulkProductAction,
-    getProductCategories
+    getProductCategories,
+    processOrder,
+    addProductBatch,
+    getProductBatches
 }

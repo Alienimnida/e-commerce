@@ -16,5 +16,8 @@ router.post('/:productId/images', sellerProductController.uploadProductImages)
 router.delete('/:productId/images/:imageIndex', sellerProductController.deleteProductImage)
 router.post('/bulk-action', sellerProductController.bulkProductAction)
 router.get('/categories/list', sellerProductController.getProductCategories)
+router.post('/order/process', sellerProductController.processOrder)
+router.post('/:productId/batch', sellerProductController.addProductBatch)
+router.get('/:productId/batches', sellerProductController.getProductBatches)
 
 module.exports = router
