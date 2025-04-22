@@ -130,13 +130,19 @@ const processOrder = async (req, res) => {
 
         product.batches = product.batches.filter(batch => batch.quantity > 0)
 
+        if (product.batches.length > 0) {
+            product.batches.sort((a, b) => a.createdAt - b.createdAt)
+            product.price = product.batches[0].sellingPrice
+        }
+
         product.updatedAt = new Date()
         await product.save()
 
         res.status(200).json({
             message: 'Order processed successfully',
             fulfilledBatches,
-            remainingBatches: product.batches
+            remainingBatches: product.batches,
+            updatedPrice: product.price
         })
     } catch (err) {
         console.error('Process order error:', err)
@@ -228,7 +234,8 @@ const updateProduct = async (req, res) => {
     try {
         const { productId } = req.params
         const sellerId = req.user.id
-        const { name, description, price, category, images } = req.body
+        const { name, description, category, images } = req.body
+
         const product = await Product.findOne({ productId, sellerId })
 
         if (!product) {
@@ -237,7 +244,6 @@ const updateProduct = async (req, res) => {
 
         if (name) product.name = name
         if (description !== undefined) product.description = description
-        if (price) product.price = price
         if (category) product.category = category
         if (images) product.images = images
 
@@ -246,7 +252,15 @@ const updateProduct = async (req, res) => {
 
         res.status(200).json({
             message: 'Product updated successfully',
-            product
+            product,
+            batches: product.batches,
+            currentBatchInfo: {
+                totalQuantity: product.batches.reduce((sum, batch) => sum + batch.quantity, 0),
+                latestPrice: product.batches.length > 0 ?
+                    product.batches.sort((a, b) => b.createdAt - a.createdAt)[0].sellingPrice : 0,
+                latestMarketPrice: product.batches.length > 0 ?
+                    product.batches.sort((a, b) => b.createdAt - a.createdAt)[0].marketPrice : 0
+            }
         })
     } catch (err) {
         console.error('Update product error', err)
