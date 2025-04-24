@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 
 const AddProductForm = () => {
   const [formData, setFormData] = useState({
@@ -22,44 +23,97 @@ const AddProductForm = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     console.log(formData);
-    // You can uncomment and use axios here for form submission
+    // Axios logic goes here
   };
 
   return (
-    <div style={pageStyle}>
-      <form style={formStyle} onSubmit={handleSubmit}>
-        <h2 style={{ marginBottom: '1rem' }}>Add New Product</h2>
-        <input name="name" type="text" placeholder="Product Name" onChange={handleChange} required style={inputStyle} />
-        <textarea name="description" placeholder="Description" onChange={handleChange} required style={inputStyle} />
-        <input name="sellingPrice" type="number" placeholder="Selling Price" onChange={handleChange} required style={inputStyle} />
-        <input name="mrp" type="number" placeholder="MRP" onChange={handleChange} required style={inputStyle} />
-        <input name="quantity" type="number" placeholder="Quantity" onChange={handleChange} required style={inputStyle} />
-        <select name="category" onChange={handleChange} required style={inputStyle}>
-  <option value="">Select Category</option>
-  <option value="Laptops">Laptops 💻</option>
-  <option value="Smartphones">Smartphones 📱</option>
-  <option value="Headphones">Headphones 🎧</option>
-  <option value="TVs">TVs 📺</option>
-  <option value="Gaming">Gaming 🎮</option>
-  <option value="Wearables">Wearables ⌚</option>
-  <option value="Cameras">Cameras 📷</option>
-  <option value="Smart Home">Smart Home 🏠</option>
-</select>
+    <div style={layoutStyle}>
+      {/* Sidebar */}
+      <div style={sidebarStyle}>
+  <h2 style={navTitleStyle}>Dashboard</h2>
+  <div style={navButtonGroupStyle}>
+    <Link to="/seller-dashboard" style={navButtonLinkStyle}>Home</Link>
+    <Link to="/products" style={navButtonLinkStyle}>List Of Products</Link>
+    <Link to="/add-product" style={navButtonLinkStyle}>Add New Product</Link>
+    <Link to="/profile" style={navButtonLinkStyle}>Profile</Link>
+  </div>
+</div>
 
-        <input name="image" type="file" onChange={handleChange} required style={inputStyle} />
-        <button type="submit" style={buttonStyle}>Add Product</button>
-      </form>
+      {/* Form Content */}
+      <div style={mainContentStyle}>
+        <form style={formStyle} onSubmit={handleSubmit}>
+          <h2 style={{ marginBottom: '1rem' }}>Add New Product</h2>
+          <input name="name" type="text" placeholder="Product Name" onChange={handleChange} required style={inputStyle} />
+          <textarea name="description" placeholder="Description" onChange={handleChange} required style={inputStyle} />
+          <input name="sellingPrice" type="number" placeholder="Selling Price" onChange={handleChange} required style={inputStyle} />
+          <input name="mrp" type="number" placeholder="MRP" onChange={handleChange} required style={inputStyle} />
+          <input name="quantity" type="number" placeholder="Quantity" onChange={handleChange} required style={inputStyle} />
+          <select name="category" onChange={handleChange} required style={inputStyle}>
+            <option value="">Select Category</option>
+            <option value="Laptops">Laptops 💻</option>
+            <option value="Smartphones">Smartphones 📱</option>
+            <option value="Headphones">Headphones 🎧</option>
+            <option value="TVs">TVs 📺</option>
+            <option value="Gaming">Gaming 🎮</option>
+            <option value="Wearables">Wearables ⌚</option>
+            <option value="Cameras">Cameras 📷</option>
+            <option value="Smart Home">Smart Home 🏠</option>
+          </select>
+          <input name="image" type="file" onChange={handleChange} required style={inputStyle} />
+          <button type="submit" style={buttonStyle}>Add Product</button>
+        </form>
+      </div>
     </div>
   );
 };
 
-const pageStyle = {
+// Shared styles from SellerDashboard
+const layoutStyle = {
+  display: 'flex',
   height: '100vh',
   width: '100vw',
+};
+
+const sidebarStyle = {
+  width: '220px',
+  backgroundColor: '#222',
+  color: '#fff',
+  padding: '2rem 1rem',
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'flex-start',
+};
+
+const navTitleStyle = {
+  fontSize: '1.5rem',
+  marginBottom: '2rem',
+};
+
+const navButtonGroupStyle = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '1rem',
+  width: '100%',
+};
+
+const navButtonStyle = {
+  backgroundColor: '#444',
+  color: '#fff',
+  border: '1px solid rgba(255, 255, 255, 0.3)',
+  padding: '0.75rem 1rem',
+  fontSize: '1rem',
+  borderRadius: '8px',
+  cursor: 'pointer',
+  textAlign: 'left',
+  transition: 'all 0.3s',
+};
+
+const mainContentStyle = {
+  flex: 1,
+  backgroundColor: '#f4f4f4',
   display: 'flex',
   justifyContent: 'center',
   alignItems: 'center',
-  backgroundColor: '#f4f4f4',
 };
 
 const formStyle = {
@@ -89,6 +143,11 @@ const buttonStyle = {
   borderRadius: '8px',
   fontWeight: 'bold',
   cursor: 'pointer',
+};
+const navButtonLinkStyle = {
+  ...navButtonStyle,
+  textDecoration: 'none',
+  display: 'block',
 };
 
 export default AddProductForm;

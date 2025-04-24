@@ -22,54 +22,49 @@ const SignUp = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // 🔧 Skip API call, just simulate redirect
-    if (formData.role === 'seller') {
-      navigate('/seller-dashboard');
-    }
-    const handleSubmit = async (e) => {
-      e.preventDefault();
-    
-      try {
-        let payload = {};
-    
-        if (formData.role === 'admin') {
-          payload = {
-            email: formData.email,
-            password: formData.password,
-            name: formData.username,
-            role: 'admin',
-            adminCode: formData.adminCode,
-          };
-        } else if (formData.role === 'seller') {
-          payload = {
-            email: formData.email,
-            password: formData.password,
-            name: formData.name,
-            businessName: formData.businessName,
-            phone: formData.phone,
-            address: formData.address,
-            role: 'seller',
-          };
-        }
-    
-        const res = await axios.post("http://localhost:8000/api/auth/register", payload);
-        alert(res.data.message || "Registration successful!");
-        console.log("✅ Success:", res.data);
-    
-        if (formData.role === 'seller') {
-          navigate('/seller-dashboard');
-        } else if (formData.role === 'admin') {
-          navigate('/admin-dashboard');
-        }
-    
-      } catch (error) {
-        console.error("❌ Error:", error.response?.data || error.message);
-        alert(error.response?.data?.message || "Something went wrong");
+  
+    try {
+      let payload = {};
+      let endpoint = "";
+  
+      if (formData.role === 'admin') {
+        payload = {
+          email: formData.email,
+          password: formData.password,
+          name: formData.username,
+          phone: formData.phone,
+          adminCode: formData.adminCode,
+        };
+        endpoint = "http://localhost:8000/api/auth/register-admin";
+      } else if (formData.role === 'seller') {
+        payload = {
+          email: formData.email,
+          password: formData.password,
+          name: formData.name,
+          businessName: formData.businessName,
+          phone: formData.phone,
+          address: formData.address,
+        };
+        endpoint = "http://localhost:8000/api/auth/register";
       }
-    };
-    
+  
+      const res = await axios.post(endpoint, payload);
+      alert(res.data.message || "Registration successful!");
+      console.log("✅ Success:", res.data);
+  
+      if (formData.role === 'seller') {
+        navigate('/seller-dashboard');
+      } else if (formData.role === 'admin') {
+        navigate('/admin-dashboard');
+      }
+  
+    } catch (error) {
+      console.error("❌ Error:", error.response?.data || error.message);
+      alert(error.response?.data?.message || "Something went wrong");
+    }
   };
+    
+  
 
   return (
     <div style={containerStyleBlack}>

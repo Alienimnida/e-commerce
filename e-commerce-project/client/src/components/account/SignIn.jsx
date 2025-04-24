@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 const SignIn = () => {
   const [formData, setFormData] = useState({
@@ -7,6 +8,8 @@ const SignIn = () => {
     email: '',
     password: '',
   });
+
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -22,10 +25,23 @@ const SignIn = () => {
         password: formData.password,
       };
 
-      const res = await axios.post('http://localhost:5000/api/auth/login', payload); // Adjust endpoint if needed
+      const res = await axios.post('http://localhost:8000/api/auth/login', payload);
+
+      // ✅ Save tokens and user info
+      localStorage.setItem('token', res.data.token);
+      localStorage.setItem('refreshToken', res.data.refreshToken);
+      localStorage.setItem('user', JSON.stringify(res.data.user));
+
       alert(res.data.message || 'Login successful!');
       console.log('Success:', res.data);
-      // Add navigation after login if needed
+
+      // ✅ Navigate based on role
+      if (res.data.user.role === 'admin') {
+        navigate('/admin-dashboard');
+      } else {
+        navigate('/seller-dashboard');
+      }
+
     } catch (error) {
       console.error('Error:', error.response?.data || error.message);
       alert(error.response?.data?.message || 'Login failed');
@@ -37,7 +53,6 @@ const SignIn = () => {
       <form onSubmit={handleSubmit} style={formStyle}>
         <h2 style={titleStyle}>Sign In</h2>
 
-        {/* Role Selection */}
         <select
           name="role"
           value={formData.role}
@@ -50,7 +65,6 @@ const SignIn = () => {
           <option value="seller">Seller</option>
         </select>
 
-        {/* Shared Fields */}
         <input
           type="email"
           name="email"
@@ -81,7 +95,7 @@ const SignIn = () => {
   );
 };
 
-// Reuse the same styles
+// Styles
 const containerStyleBlack = {
   backgroundColor: '#000',
   color: '#fff',
@@ -99,8 +113,6 @@ const formStyle = {
   padding: '2rem',
   borderRadius: '16px',
   boxShadow: '17px 13px 23px -4px rgba(209,202,65,1)',
-  WebkitBoxShadow: '17px 13px 23px -4px rgba(209,202,65,1)',
-  MozBoxShadow: '17px 13px 23px -4px rgba(209,202,65,1)',
   width: '300px',
   color: '#333',
   border: 'none',
@@ -132,7 +144,6 @@ const buttonStyle = {
   borderRadius: '4px',
   cursor: 'pointer',
   marginTop: '1rem',
-  margin: '1rem 0',
 };
 
 const linkTextStyle = {
