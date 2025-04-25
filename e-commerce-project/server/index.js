@@ -14,6 +14,8 @@ const PORT = process.env.PORT || 8000
 
 app.use(cors())
 app.use(express.json())
+app.use(express.urlencoded({ extended: true }));
+
 
 app.get('/', (req, res) => {
     res.json('Welcome to GadgetNest Server')
@@ -22,6 +24,16 @@ app.get('/', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/seller', sellerProductRoutes);
+
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+
+    if (err.name === 'MulterError') {
+        return res.status(400).json({ message: `File upload error: ${err.message}` });
+    }
+
+    res.status(500).json({ message: 'Server error', error: err.message });
+});
 
 connectToMongoDB()
     .then(() => {

@@ -1,27 +1,32 @@
 const { v4: uuidv4 } = require('uuid')
 const Product = require('../models/Product')
 
-//Create new product
 const createProduct = async (req, res) => {
     try {
-        const {
-            name,
-            description,
-            price,
-            marketPrice,
-            sellingPrice,
-            quantity,
-            category,
-            images = []
-        } = req.body
+        console.log('Request body:', req.body)
+        console.log('Request file:', req.file)
+
+        const name = req.body.name
+        const description = req.body.description
+        const sellingPrice = parseFloat(req.body.sellingPrice)
+        const mrp = parseFloat(req.body.mrp)
+        const quantity = parseInt(req.body.quantity)
+        const category = req.body.category
 
         if (!name || !sellingPrice || quantity === undefined) {
             return res.status(400).json({ message: 'Product name, selling price, and quantity are required' })
         }
 
+        let imageUrl = null
+        if (req.file) {
+            imageUrl = req.file.location
+            console.log("File uploaded to:", imageUrl)
+        }
+
         const productId = uuidv4()
         const sellerId = req.user.id
         const batchId = uuidv4()
+
         const existingProduct = await Product.findOne({
             name,
             sellerId
@@ -31,14 +36,14 @@ const createProduct = async (req, res) => {
             existingProduct.batches.push({
                 batchId,
                 quantity,
-                marketPrice: marketPrice || price,
+                marketPrice: mrp || sellingPrice,
                 sellingPrice,
                 createdAt: new Date()
             })
 
             if (description) existingProduct.description = description
             if (category) existingProduct.category = category
-            if (images.length > 0) existingProduct.images = images
+            if (imageUrl) existingProduct.images.push(imageUrl)
 
             existingProduct.updatedAt = new Date()
             await existingProduct.save()
@@ -53,13 +58,13 @@ const createProduct = async (req, res) => {
                 name,
                 description: description || '',
                 price: sellingPrice,
-                images,
+                images: imageUrl ? [imageUrl] : [],
                 category: category || 'uncategorized',
                 sellerId,
                 batches: [{
                     batchId,
                     quantity,
-                    marketPrice: marketPrice || sellingPrice,
+                    marketPrice: mrp || sellingPrice,
                     sellingPrice,
                     createdAt: new Date()
                 }],
@@ -67,7 +72,7 @@ const createProduct = async (req, res) => {
                 updatedAt: new Date()
             })
 
-            await newProduct.save()
+            await newProduct.save();
             res.status(201).json({
                 message: 'Product created successfully with initial batch',
                 product: newProduct
@@ -78,7 +83,7 @@ const createProduct = async (req, res) => {
         res.status(500).json({
             message: 'Server error',
             error: err.message
-        });
+        })
     }
 }
 
@@ -404,19 +409,21 @@ const updateProductStatus = async (req, res) => {
 const uploadProductImages = async (req, res) => {
     try {
         const { productId } = req.params
-        const { images } = req.body
         const sellerId = req.user.id
 
-        if (!images || !Array.isArray(images)) {
-            return res.status(400).json({ message: 'Images array is required' })
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).json({ message: 'No images uploaded' })
         }
+
         const product = await Product.findOne({ productId, sellerId })
 
         if (!product) {
             return res.status(404).json({ message: 'Product not found' })
         }
 
-        product.images = [...product.images, ...images]
+        const imageUrls = req.files.map(file => file.location)
+
+        product.images = [...product.images, ...imageUrls]
         product.updatedAt = new Date()
         await product.save()
 
@@ -425,7 +432,7 @@ const uploadProductImages = async (req, res) => {
             images: product.images
         })
     } catch (err) {
-        console.error('Upload product images error:', err)
+        console.error('Upload product images error:', err);
         res.status(500).json({
             message: 'Server error',
             error: err.message
@@ -436,7 +443,7 @@ const uploadProductImages = async (req, res) => {
 //Delete product images
 const deleteProductImage = async (req, res) => {
     try {
-        const { productId, imageIndex } = req.params
+        const { productId, imageIndex } = req.params;
         const sellerId = req.user.id
 
         const product = await Product.findOne({ productId, sellerId })
@@ -445,7 +452,7 @@ const deleteProductImage = async (req, res) => {
             return res.status(404).json({ message: 'Product not found' })
         }
 
-        const index = parseInt(imageIndex);
+        const index = parseInt(imageIndex)
 
         if (isNaN(index) || index < 0 || index >= product.images.length) {
             return res.status(400).json({ message: 'Invalid image index' })
@@ -458,7 +465,7 @@ const deleteProductImage = async (req, res) => {
         res.status(200).json({
             message: 'Product image deleted successfully',
             images: product.images
-        });
+        })
     } catch (err) {
         console.error('Delete product image error:', err)
         res.status(500).json({
