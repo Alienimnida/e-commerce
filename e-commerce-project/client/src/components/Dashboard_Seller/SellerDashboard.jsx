@@ -8,12 +8,10 @@ const SellerDashboard = () => {
       <div style={sidebarStyle}>
         <h2 style={navTitleStyle}>Dashboard</h2>
         <div style={navButtonGroupStyle}>
-          <button style={navButtonStyle}>Home</button>
-          <button style={navButtonStyle}>List Of Products</button>
-          <Link to="/add-product" style={{ ...navButtonStyle, textDecoration: 'none' }}>
-          Add New Product
-          </Link>
-          <button style={navButtonStyle}>Profile</button>
+          <Link to="/seller-dashboard" style={navButtonLinkStyle}>Home</Link>
+          <Link to="/product-list" style={navButtonLinkStyle}>List Of Products</Link>
+          <Link to="/add-product" style={navButtonLinkStyle}>Add New Product</Link>
+          <Link to="/profile" style={navButtonLinkStyle}>Profile</Link>
         </div>
       </div>
 
@@ -69,6 +67,13 @@ const navButtonStyle = {
   textAlign: 'left',
   transition: 'all 0.3s',
 };
+
+const navButtonLinkStyle = {
+  ...navButtonStyle,
+  textDecoration: 'none',
+  display: 'block',
+};
+
 
 
 navButtonStyle[':hover'] = {

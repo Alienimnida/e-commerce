@@ -78,10 +78,10 @@ const ProductList = () => {
     setEditingProductId(null);
   };
 
-  const handleDelete = async (productId) => {
+  const handleDelete = async (product) => {
     try {
-      await axios.delete(`/api/seller/products/${productId}`, getAuthHeaders());
-      setProducts(products.filter((product) => product._id !== productId));
+      await axios.delete(`http://localhost:8000/api/seller/${product.productId}`, getAuthHeaders());
+      setProducts(products.filter((p) => p.productId !== product.productId));
     } catch (err) {
       console.error('Error deleting product:', err);
       setError('Failed to delete product');
@@ -136,7 +136,7 @@ const ProductList = () => {
                           <td style={tdStyle}>{product.category}</td>
                           <td style={tdStyle}>
                             <button onClick={() => handleEditClick(product)} style={buttonStyle}>Edit</button>
-                            <button onClick={() => handleDelete(product._id)} style={deleteButtonStyle}>Delete</button>
+                            <button onClick={() => handleDelete(product)} style={deleteButtonStyle}>Delete</button>
                           </td>
                         </>
                       )}
